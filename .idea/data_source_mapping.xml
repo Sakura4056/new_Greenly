@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourcePerFileMappings">
+    <file url="file://$PROJECT_DIR$/plant-backend/src/main/resources/db/schema-mysql.sql" value="147963d1-64ae-4fa5-a6ef-39a97214bebe" />
+  </component>
+</project>
