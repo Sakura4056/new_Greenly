@@ -10,6 +10,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/care/schedule")
@@ -60,5 +62,13 @@ public class CareScheduleController {
         String role = jwtUtil.getRoleFromToken(token);
 
         return Result.success(careScheduleService.query(query, userId, role));
+    }
+
+    @GetMapping("/calendar")
+    public Result<Map<String, List<CareSchedule>>> getCalendar(@RequestParam Integer year, @RequestParam Integer month, HttpServletRequest httpRequest) {
+        String token = httpRequest.getHeader("Authorization").substring(7);
+        Long userId = jwtUtil.getUserIdFromToken(token);
+
+        return Result.success(careScheduleService.getCalendar(year, month, userId));
     }
 }

@@ -7,10 +7,9 @@ import com.plant.backend.entity.ReminderConfig;
 
 public interface ReminderService extends IService<Reminder> {
     ReminderConfig updateConfig(ReminderDTO.ConfigUpdateRequest request, Long userId);
-
     ReminderConfig getConfig(Long userId);
-
     ReminderDTO.UnreadResponse getUnread(Long userId);
-
-    void markAsRead(Long id, Long userId);
+    void markAsRead(Long reminderId, Long userId);
+    Integer getUnreadCount(Long userId);
+    void markAllAsRead(Long userId);
 }

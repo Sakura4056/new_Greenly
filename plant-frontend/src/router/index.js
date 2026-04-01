@@ -87,6 +87,12 @@ const routes = [
                 name: 'CareStatistic',
                 component: () => import('@/pages/care/record-statistic.vue'),
                 meta: { title: '养护统计' }
+            },
+            {
+                path: 'calendar',
+                name: 'CareCalendar',
+                component: () => import('@/pages/care/calendar.vue'),
+                meta: { title: '养护日历' }
             }
         ]
     },

@@ -83,4 +83,19 @@ public class ReminderController {
         new Thread(() -> careTask.scanDueSchedules(true)).start();
         return Result.success();
     }
+
+    @GetMapping("/unread-count")
+    public Result<Integer> getUnreadCount(HttpServletRequest httpRequest) {
+        String token = httpRequest.getHeader("Authorization").substring(7);
+        Long userId = jwtUtil.getUserIdFromToken(token);
+        return Result.success(reminderService.getUnreadCount(userId));
+    }
+
+    @PutMapping("/read-all")
+    public Result<Void> markAllAsRead(HttpServletRequest httpRequest) {
+        String token = httpRequest.getHeader("Authorization").substring(7);
+        Long userId = jwtUtil.getUserIdFromToken(token);
+        reminderService.markAllAsRead(userId);
+        return Result.success();
+    }
 }

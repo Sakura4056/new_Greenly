@@ -13,4 +13,5 @@ public interface CareScheduleService extends IService<CareSchedule> {
     Page<CareSchedule> query(CareScheduleDTO.Query query, Long currentUserId, String currentRole);
 
     void deleteSchedule(Long scheduleId, Long userId);
+    Map<String, List<CareSchedule>> getCalendar(Integer year, Integer month, Long userId);
 }

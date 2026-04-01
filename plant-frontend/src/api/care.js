@@ -53,3 +53,12 @@ export function getRecordList(params) {
         params
     })
 }
+
+// Get calendar data
+export function getCalendar(year, month) {
+    return request({
+        url: '/care/schedule/calendar',
+        method: 'get',
+        params: { year, month }
+    })
+}

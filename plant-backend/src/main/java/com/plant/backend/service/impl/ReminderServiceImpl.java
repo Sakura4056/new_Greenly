@@ -119,4 +119,24 @@ public class ReminderServiceImpl extends ServiceImpl<ReminderMapper, Reminder> i
         reminder.setIsRead(1);
         updateById(reminder);
     }
+
+    @Override
+    public Integer getUnreadCount(Long userId) {
+        return count(new LambdaQueryWrapper<Reminder>()
+                .eq(Reminder::getUserId, userId)
+                .eq(Reminder::getIsRead, 0));
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void markAllAsRead(Long userId) {
+        LambdaQueryWrapper<Reminder> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Reminder::getUserId, userId)
+                .eq(Reminder::getIsRead, 0);
+        List<Reminder> reminders = list(wrapper);
+        for (Reminder reminder : reminders) {
+            reminder.setIsRead(1);
+        }
+        saveOrUpdateBatch(reminders);
+    }
 }

@@ -32,3 +32,19 @@ export function markRead(id) {
         method: 'put'
     })
 }
+
+// Get unread count
+export function getUnreadCount() {
+    return request({
+        url: '/reminder/unread-count',
+        method: 'get'
+    })
+}
+
+// Mark all reminders as read
+export function markAllAsRead() {
+    return request({
+        url: '/reminder/read-all',
+        method: 'put'
+    })
+}

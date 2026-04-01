@@ -1,65 +1,153 @@
 <template>
   <div class="app-container">
-    <div class="chat-layout glass-panel">
-      <div class="chat-header">
-        <div class="header-content">
-          <el-icon :size="24" color="var(--color-primary)"><ChatDotRound /></el-icon>
-          <div class="title-area">
-            <h2>AI 植物顾问</h2>
-            <p>您的私人植物专家，随时解答养护难题 <el-tag size="small" type="info" v-if="aiConfig.model">{{ aiConfig.provider }}</el-tag></p>
+    <el-card shadow="never" class="ai-card">
+      <template #header>
+        <div class="ai-header">
+          <div class="header-content">
+            <el-icon :size="24" color="var(--color-primary)"><ChatDotRound /></el-icon>
+            <div class="title-area">
+              <h2>AI 植物顾问</h2>
+              <p>您的私人植物专家，随时解答养护难题 <el-tag size="small" type="info" v-if="aiConfig.model">{{ aiConfig.provider }}</el-tag></p>
+            </div>
+          </div>
+          <div class="header-actions">
+            <el-button type="primary" link @click="showSettings = true">
+              <el-icon :size="20"><Setting /></el-icon>
+              设置 AI 模型
+            </el-button>
           </div>
         </div>
-        <div class="header-actions">
-          <el-button type="primary" link @click="showSettings = true">
-            <el-icon :size="20"><Setting /></el-icon>
-            设置 AI 模型
-          </el-button>
-        </div>
-      </div>
-      
-      <div class="chat-messages" ref="messagesContainer">
-        <div 
-          v-for="(msg, index) in messages" 
-          :key="index" 
-          class="message-wrapper"
-          :class="{ 'user-message': msg.role === 'user', 'ai-message': msg.role === 'ai' }"
-        >
-          <div class="avatar">
-            <el-avatar v-if="msg.role === 'ai'" :icon="Service" class="ai-avatar" />
-            <el-avatar v-else :icon="UserFilled" class="user-avatar" />
+      </template>
+
+      <el-tabs v-model="activeTab" class="ai-tabs">
+        <!-- 智能问答 Tab -->
+        <el-tab-pane label="智能问答" name="chat">
+          <div class="chat-messages" ref="messagesContainer">
+            <div 
+              v-for="(msg, index) in messages" 
+              :key="index" 
+              class="message-wrapper"
+              :class="{ 'user-message': msg.role === 'user', 'ai-message': msg.role === 'ai' }"
+            >
+              <div class="avatar">
+                <el-avatar v-if="msg.role === 'ai'" :icon="Service" class="ai-avatar" />
+                <el-avatar v-else :icon="UserFilled" class="user-avatar" />
+              </div>
+              <div class="message-content glass-panel">
+                <p v-html="formatMessage(msg.content)"></p>
+                <span class="time">{{ msg.time }}</span>
+              </div>
+            </div>
+            
+            <div v-if="loading" class="message-wrapper ai-message">
+               <el-avatar :icon="Service" class="ai-avatar" />
+               <div class="message-content glass-panel typing-indicator">
+                 <span></span><span></span><span></span>
+               </div>
+            </div>
           </div>
-          <div class="message-content glass-panel">
-            <p v-html="formatMessage(msg.content)"></p>
-            <span class="time">{{ msg.time }}</span>
+          
+          <div class="chat-input-area">
+            <el-input
+              v-model="inputMessage"
+              type="textarea"
+              :rows="3"
+              placeholder="请输入您的问题，例如：发财树叶子变黄了怎么办？"
+              @keydown.enter.ctrl="sendMessage"
+              resize="none"
+              class="custom-textarea"
+            />
+            <div class="input-actions">
+               <span class="tip">按 Ctrl + Enter 发送</span>
+               <el-button type="primary" @click="sendMessage" :loading="loading" round>
+                 发送 <el-icon class="el-icon--right"><Position /></el-icon>
+               </el-button>
+            </div>
           </div>
-        </div>
-        
-        <div v-if="loading" class="message-wrapper ai-message">
-           <el-avatar :icon="Service" class="ai-avatar" />
-           <div class="message-content glass-panel typing-indicator">
-             <span></span><span></span><span></span>
-           </div>
-        </div>
-      </div>
-      
-      <div class="chat-input-area">
-        <el-input
-          v-model="inputMessage"
-          type="textarea"
-          :rows="3"
-          placeholder="请输入您的问题，例如：发财树叶子变黄了怎么办？"
-          @keydown.enter.ctrl="sendMessage"
-          resize="none"
-          class="custom-textarea"
-        />
-        <div class="input-actions">
-           <span class="tip">按 Ctrl + Enter 发送</span>
-           <el-button type="primary" @click="sendMessage" :loading="loading" round>
-             发送 <el-icon class="el-icon--right"><Position /></el-icon>
-           </el-button>
-        </div>
-      </div>
-    </div>
+        </el-tab-pane>
+
+        <!-- 图片诊断 Tab -->
+        <el-tab-pane label="图片诊断" name="image">
+          <div class="image-diagnosis">
+            <div class="upload-section">
+              <el-upload
+                class="image-uploader"
+                action="#"
+                :auto-upload="false"
+                :on-change="handleImageChange"
+                :show-file-list="false"
+                accept="image/*"
+              >
+                <div v-if="!selectedImage" class="upload-placeholder">
+                  <el-icon :size="48"><Picture /></el-icon>
+                  <p>点击或拖拽上传植物照片</p>
+                  <p class="upload-tip">支持 JPG、PNG 格式</p>
+                </div>
+                <div v-else class="image-preview">
+                  <el-image :src="selectedImage" fit="cover" class="preview-image" />
+                  <el-button type="danger" circle @click="selectedImage = ''" class="remove-image">
+                    <el-icon><Delete /></el-icon>
+                  </el-button>
+                </div>
+              </el-upload>
+            </div>
+
+            <div class="diagnosis-options">
+              <el-form label-width="100px">
+                <el-form-item label="诊断类型">
+                  <el-select v-model="diagnosisType" placeholder="请选择诊断类型" class="w-full">
+                    <el-option label="种类识别" value="identification" />
+                    <el-option label="病虫害诊断" value="disease" />
+                    <el-option label="养护建议" value="care" />
+                  </el-select>
+                </el-form-item>
+              </el-form>
+            </div>
+
+            <div class="action-section">
+              <el-button 
+                type="primary" 
+                @click="startDiagnosis" 
+                :loading="imageLoading" 
+                :disabled="!selectedImage"
+                class="diagnosis-btn"
+              >
+                开始诊断
+              </el-button>
+            </div>
+
+            <div v-if="diagnosisResult" class="result-section">
+              <el-card shadow="hover" class="result-card">
+                <template #header>
+                  <div class="result-header">
+                    <h3>诊断结果</h3>
+                    <el-tag type="success">已完成</el-tag>
+                  </div>
+                </template>
+                <div class="result-content">
+                  <div v-if="diagnosisResult.plantName" class="result-item">
+                    <span class="result-label">植物名称：</span>
+                    <span class="result-value">{{ diagnosisResult.plantName }}</span>
+                  </div>
+                  <div v-if="diagnosisResult.issue" class="result-item">
+                    <span class="result-label">问题描述：</span>
+                    <span class="result-value">{{ diagnosisResult.issue }}</span>
+                  </div>
+                  <div v-if="diagnosisResult.suggestions" class="result-item">
+                    <span class="result-label">建议方案：</span>
+                    <div class="suggestions-list">
+                      <p v-for="(suggestion, index) in diagnosisResult.suggestions" :key="index">
+                        {{ index + 1 }}. {{ suggestion }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </el-card>
+            </div>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
+    </el-card>
 
     <!-- AI Settings Dialog -->
     <el-dialog v-model="showSettings" title="AI 模型配置" width="500px">
@@ -73,7 +161,7 @@
         </el-form-item>
         
         <el-form-item label="模型名称">
-          <el-input v-model="aiConfig.model" placeholder="例如: deepseek-chat, gpt-3.5-turbo" />
+          <el-input v-model="aiConfig.model" placeholder="例如: deepseek-chat, gpt-3.5-turbo, gpt-4o" />
         </el-form-item>
         
         <el-form-item label="API Key">
@@ -104,7 +192,7 @@
 
 <script setup>
 import { ref, nextTick, onMounted, reactive } from 'vue'
-import { ChatDotRound, Position, Service, UserFilled, Setting } from '@element-plus/icons-vue'
+import { ChatDotRound, Position, Service, UserFilled, Setting, Picture, Delete } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { generateAIResponse } from '@/utils/ai-service'
 
@@ -112,6 +200,11 @@ const messagesContainer = ref(null)
 const inputMessage = ref('')
 const loading = ref(false)
 const showSettings = ref(false)
+const activeTab = ref('chat')
+const selectedImage = ref('')
+const diagnosisType = ref('identification')
+const imageLoading = ref(false)
+const diagnosisResult = ref(null)
 
 const aiConfig = reactive({
   provider: 'deepseek',
@@ -180,6 +273,68 @@ const sendMessage = async () => {
   }
 }
 
+const handleImageChange = (file) => {
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    selectedImage.value = e.target.result
+  }
+  reader.readAsDataURL(file.raw)
+}
+
+const startDiagnosis = async () => {
+  if (!selectedImage.value) {
+    ElMessage.warning('请先上传植物照片')
+    return
+  }
+  
+  imageLoading.value = true
+  diagnosisResult.value = null
+  
+  try {
+    // 模拟 AI 诊断结果
+    // 实际项目中，这里应该调用 AI 服务的图像分析接口
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    
+    // 模拟诊断结果
+    if (diagnosisType.value === 'identification') {
+      diagnosisResult.value = {
+        plantName: '绿萝',
+        suggestions: [
+          '绿萝是一种常见的室内观叶植物，适合放置在半阴处',
+          '浇水要适量，保持土壤湿润但不过湿',
+          '可以定期擦拭叶片以保持光泽'
+        ]
+      }
+    } else if (diagnosisType.value === 'disease') {
+      diagnosisResult.value = {
+        plantName: '绿萝',
+        issue: '叶片发黄，可能是由于浇水过多或光照不足',
+        suggestions: [
+          '减少浇水频率，让土壤适当干燥',
+          将植物移至光线更充足的位置',
+          可以适当施肥补充养分'
+        ]
+      }
+    } else if (diagnosisType.value === 'care') {
+      diagnosisResult.value = {
+        plantName: '绿萝',
+        suggestions: [
+          '浇水：每周1-2次，保持土壤湿润',
+          '光照：适合明亮的散射光，避免阳光直射',
+          '温度：适宜温度18-30℃',
+          '施肥：每月1次稀释的液肥'
+        ]
+      }
+    }
+    
+    ElMessage.success('诊断完成')
+  } catch (error) {
+    ElMessage.error('诊断失败，请重试')
+  } finally {
+    imageLoading.value = false
+  }
+}
+
 const onProviderChange = (val) => {
   if (val === 'deepseek') {
     aiConfig.baseUrl = 'https://api.deepseek.com'
@@ -232,31 +387,24 @@ onMounted(() => {
 .app-container {
   /* Adjust height to fit within layout without scrolling main body */
   /* Main layout usually has padding. We want chat to fill available space. */
-  height: calc(100vh - 120px) !important; 
+  min-height: calc(100vh - 120px);
   display: flex;
   flex-direction: column;
 }
 
-.chat-layout {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background-color: rgba(255, 255, 255, 0.6);
-  border-radius: var(--border-radius-base);
-  overflow: hidden;
-  margin-bottom: 24px;
-  border: 1px solid rgba(255,255,255,0.5);
+.ai-card {
+  border-radius: 16px;
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+  border: 1px solid rgba(255,255,255,0.5);
+  background-color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 24px;
 }
 
-.chat-header {
-  padding: 16px 24px;
-  background: rgba(255, 255, 255, 0.85); // slightly more opaque
-  border-bottom: 1px solid rgba(0,0,0,0.05);
-  backdrop-filter: blur(4px);
+.ai-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 16px 0;
   
   .header-content {
     display: flex;
@@ -282,9 +430,20 @@ onMounted(() => {
   }
 }
 
+.ai-tabs {
+  :deep(.el-tabs__header) {
+    margin: 0 24px 24px;
+  }
+  
+  :deep(.el-tabs__content) {
+    padding: 0 24px 24px;
+  }
+}
+
 .chat-messages {
-  flex: 1;
-  padding: 24px;
+  min-height: 400px;
+  max-height: 500px;
+  padding: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -366,9 +525,11 @@ onMounted(() => {
 }
 
 .chat-input-area {
+  margin-top: 24px;
   padding: 16px 24px;
   background: white;
-  border-top: 1px solid rgba(0,0,0,0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.05);
   
   .custom-textarea {
     :deep(.el-textarea__inner) {
@@ -434,5 +595,158 @@ onMounted(() => {
 @keyframes bounce {
   0%, 80%, 100% { transform: scale(0); }
   40% { transform: scale(1); }
+}
+
+/* 图片诊断样式 */
+.image-diagnosis {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.upload-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 0;
+}
+
+.image-uploader {
+  width: 100%;
+  max-width: 400px;
+}
+
+.upload-placeholder {
+  border: 2px dashed var(--el-border-color);
+  border-radius: 12px;
+  padding: 40px 20px;
+  text-align: center;
+  background-color: var(--el-fill-color-light);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    border-color: var(--el-color-primary);
+    background-color: rgba(var(--el-color-primary-rgb), 0.05);
+  }
+  
+  p {
+    margin: 12px 0 4px;
+    font-size: 16px;
+    color: var(--el-text-color-regular);
+  }
+  
+  .upload-tip {
+    font-size: 14px;
+    color: var(--el-text-color-secondary);
+    margin-top: 8px;
+  }
+}
+
+.image-preview {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+.preview-image {
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+}
+
+.remove-image {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background-color: rgba(255,255,255,0.9);
+  border: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  
+  &:hover {
+    background-color: white;
+  }
+}
+
+.diagnosis-options {
+  background-color: white;
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+.action-section {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.diagnosis-btn {
+  padding: 12px 32px;
+  font-size: 16px;
+  border-radius: 24px;
+  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.4);
+  }
+}
+
+.result-section {
+  margin-top: 20px;
+}
+
+.result-card {
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  
+  h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+}
+
+.result-content {
+  margin-top: 16px;
+  
+  .result-item {
+    margin-bottom: 16px;
+    
+    .result-label {
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+      margin-right: 8px;
+    }
+    
+    .result-value {
+      color: var(--el-text-color-regular);
+      line-height: 1.6;
+    }
+  }
+  
+  .suggestions-list {
+    margin-top: 8px;
+    padding-left: 20px;
+    
+    p {
+      margin: 8px 0;
+      line-height: 1.5;
+      color: var(--el-text-color-regular);
+    }
+  }
 }
 </style>
