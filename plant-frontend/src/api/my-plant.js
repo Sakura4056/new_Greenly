@@ -3,7 +3,7 @@ import request from './request'
 // 获取我的植物列表
 export function getMyPlantList(params) {
     return request({
-        url: '/my-plant',
+        url: '/api/my-plant',
         method: 'get',
         params
     })
@@ -12,7 +12,7 @@ export function getMyPlantList(params) {
 // 获取单株植物实体信息
 export function getMyPlantById(id) {
     return request({
-        url: `/my-plant/${id}`,
+        url: `/api/my-plant/${id}`,
         method: 'get'
     })
 }
@@ -20,7 +20,7 @@ export function getMyPlantById(id) {
 // 聚合获取最近动态及植物详情
 export function getMyPlantDetail(id) {
     return request({
-        url: `/my-plant/${id}/detail`,
+        url: `/api/my-plant/${id}/detail`,
         method: 'get'
     })
 }
@@ -28,7 +28,7 @@ export function getMyPlantDetail(id) {
 // 新增我的植物
 export function addMyPlant(data) {
     return request({
-        url: '/my-plant',
+        url: '/api/my-plant',
         method: 'post',
         data
     })
@@ -37,7 +37,7 @@ export function addMyPlant(data) {
 // 修改我的植物
 export function updateMyPlant(id, data) {
     return request({
-        url: `/my-plant/${id}`,
+        url: `/api/my-plant/${id}`,
         method: 'put',
         data
     })
@@ -46,7 +46,7 @@ export function updateMyPlant(id, data) {
 // 逻辑删除
 export function deleteMyPlant(id) {
     return request({
-        url: `/my-plant/${id}`,
+        url: `/api/my-plant/${id}`,
         method: 'delete'
     })
 }

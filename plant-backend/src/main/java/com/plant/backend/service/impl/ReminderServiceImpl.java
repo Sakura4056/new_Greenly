@@ -122,9 +122,9 @@ public class ReminderServiceImpl extends ServiceImpl<ReminderMapper, Reminder> i
 
     @Override
     public Integer getUnreadCount(Long userId) {
-        return count(new LambdaQueryWrapper<Reminder>()
+        return Math.toIntExact(count(new LambdaQueryWrapper<Reminder>()
                 .eq(Reminder::getUserId, userId)
-                .eq(Reminder::getIsRead, 0));
+                .eq(Reminder::getIsRead, 0)));
     }
 
     @Override

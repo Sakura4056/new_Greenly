@@ -1,18 +1,18 @@
 <template>
   <div class="my-detail-container" v-loading="loading">
     <div class="header-banner">
-      <div 
-        class="banner-bg" 
-        :style="{ backgroundImage: `url(${detail.plant?.coverUrl || defaultCover})` }"
+      <div
+        class="banner-bg"
+        :style="{ backgroundImage: `url(${safeCoverUrl})` }"
       ></div>
       <div class="banner-content">
         <el-button class="back-btn" circle @click="goBack">
           <el-icon><Back /></el-icon>
         </el-button>
         <div class="info-block">
-          <el-avatar 
-            :size="120" 
-            :src="detail.plant?.coverUrl || defaultCover" 
+          <el-avatar
+            :size="120"
+            :src="safeCoverUrl"
             class="main-avatar"
           />
           <div class="text-block">
@@ -23,9 +23,9 @@
               </span>
             </div>
             <div class="meta-row">
-              <span class="meta-item"><el-icon><Location /></el-icon> {{ detail.plant?.location || '未定位置' }}</span>
+              <span class="meta-item"><el-icon><Location /></el-icon> {{ detail.plant?.location || '未定位' }}</span>
               <span class="meta-item"><el-icon><CollectionTag /></el-icon> {{ detail.plant?.source || '未知来源' }}</span>
-              <span class="meta-item"><el-icon><Calendar /></el-icon> {{ detail.plant?.acquiredDate || '未知' }} 入住</span>
+              <span class="meta-item"><el-icon><Calendar /></el-icon> {{ detail.plant?.acquiredDate || '未知' }} 入驻</span>
             </div>
           </div>
         </div>
@@ -55,7 +55,7 @@
                   <el-card shadow="hover" class="timeline-card">
                     <h4>{{ item.taskName }}</h4>
                     <p class="timeline-meta" v-if="item.recurrenceType !== 'NONE'">
-                      循环：每 {{ item.recurrenceInterval }} {{ getRecurrenceTypeName(item.recurrenceType) }}
+                      寰幆锛氭瘡 {{ item.recurrenceInterval }} {{ getRecurrenceTypeName(item.recurrenceType) }}
                     </p>
                   </el-card>
                 </el-timeline-item>
@@ -89,22 +89,22 @@
             </div>
           </el-tab-pane>
 
-          <!-- Tab 3: 成长相册 -->
-          <el-tab-pane name="photo" :label="`成长相册 (${detail.totalPhotos || 0})`">
+          <!-- Tab 3: 成长记录 -->
+          <el-tab-pane name="photo" :label="`成长记录 (${detail.totalPhotos || 0})`">
             <div class="pane-content">
               <div class="pane-header">
-                <h3>精选照片</h3>
+                <h3>精彩瞬间</h3>
                 <el-button link type="primary" @click="goAll('photo')">查看全部 ></el-button>
               </div>
-              <el-empty v-if="!detail.recentPhotos?.length" description="还没拍过照哦" :image-size="100" />
+              <el-empty v-if="!safeRecentPhotos.length" description="还没拍过照片" :image-size="100" />
               <div v-else class="photo-grid">
-                <el-image 
-                  v-for="(photo, idx) in detail.recentPhotos" 
+                <el-image
+                  v-for="(photo, idx) in safeRecentPhotos"
                   :key="idx"
-                  :src="photo.url" 
+                  :src="photo.safeUrl"
                   class="grid-img"
                   fit="cover"
-                  :preview-src-list="detail.recentPhotos.map(p => p.url)"
+                  :preview-src-list="photoPreviewList"
                   :initial-index="idx"
                 />
               </div>
@@ -112,7 +112,7 @@
           </el-tab-pane>
         </el-tabs>
       </el-card>
-      
+
       <!-- Statistics Card -->
       <div class="side-panel">
         <el-card shadow="hover" class="note-card">
@@ -123,7 +123,7 @@
             </div>
           </template>
           <div class="note-text">
-            {{ detail.plant?.notes || '主人什么都没写~' }}
+            {{ detail.plant?.notes || '涓讳汉浠€涔堥兘娌″啓~' }}
           </div>
         </el-card>
       </div>
@@ -137,9 +137,9 @@
         </el-button>
         <template #dropdown>
           <el-dropdown-menu class="fab-menu">
-            <el-dropdown-item command="schedule"><el-icon><Calendar /></el-icon> 添加计划</el-dropdown-item>
-            <el-dropdown-item command="record"><el-icon><DocumentAdd /></el-icon> 记录养护</el-dropdown-item>
-            <el-dropdown-item command="photo"><el-icon><Camera /></el-icon> 上传照片</el-dropdown-item>
+            <el-dropdown-item command="schedule"><el-icon><Calendar /></el-icon> 娣诲姞璁″垝</el-dropdown-item>
+            <el-dropdown-item command="record"><el-icon><DocumentAdd /></el-icon> 璁板綍鍏绘姢</el-dropdown-item>
+            <el-dropdown-item command="photo"><el-icon><Camera /></el-icon> 涓婁紶鐓х墖</el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
@@ -148,20 +148,31 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   Back, Location, Calendar, CollectionTag,
   Document, Edit, Plus, Camera, DocumentAdd
 } from '@element-plus/icons-vue'
 import { getMyPlantDetail } from '@/api/my-plant'
+import { DEFAULT_PLANT_IMAGE, normalizeImageUrl } from '@/utils/image'
 
 const route = useRoute()
 const router = useRouter()
 const activeTab = ref('schedule')
 const loading = ref(false)
 const detail = ref({})
-const defaultCover = 'https://images.unsplash.com/photo-1463320726281-696a485928c7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+const defaultCover = DEFAULT_PLANT_IMAGE
+const safeCoverUrl = computed(() => normalizeImageUrl(detail.value.plant?.coverUrl, defaultCover))
+const safeRecentPhotos = computed(() => {
+  return (detail.value.recentPhotos || [])
+    .map(photo => ({
+      ...photo,
+      safeUrl: normalizeImageUrl(photo?.url, '')
+    }))
+    .filter(photo => Boolean(photo.safeUrl))
+})
+const photoPreviewList = computed(() => safeRecentPhotos.value.map(photo => photo.safeUrl))
 
 onMounted(() => {
   const id = route.params.id
@@ -173,12 +184,25 @@ onMounted(() => {
 const loadDetail = async (id) => {
   loading.value = true
   try {
+    console.log('Loading plant detail for id:', id)
     const res = await getMyPlantDetail(id)
-    if (res.data) {
-      detail.value = res.data
-    }
+    console.log('Plant detail response:', res)
+    detail.value = res || {}
   } catch (e) {
-    console.error(e)
+    console.error('Error loading plant detail:', e)
+    console.error('Error message:', e.message)
+    console.error('Error response:', e.response)
+    console.error('Error status:', e.response?.status)
+    console.error('Error data:', e.response?.data)
+    detail.value = {
+      plant: null,
+      recentSchedules: [],
+      recentRecords: [],
+      recentPhotos: [],
+      totalSchedules: 0,
+      totalRecords: 0,
+      totalPhotos: 0
+    }
   } finally {
     loading.value = false
   }
@@ -188,8 +212,8 @@ const getStatusText = (status) => {
   const map = {
     HEALTHY: '健康',
     SICK: '生病',
-    DEAD: '阵亡',
-    GIFTED: '送人'
+    DEAD: '死亡',
+    GIFTED: '赠送'
   }
   return map[status] || status
 }
@@ -201,7 +225,7 @@ const formatDate = (dateString) => {
 
 const getRecurrenceTypeName = (type) => {
   const map = { DAY: '天', MONTH: '月', YEAR: '年' }
-  return map[type] || ''
+  return map[type] || '无'
 }
 
 const parseOps = (jsonStr) => {
@@ -214,7 +238,7 @@ const parseOps = (jsonStr) => {
 }
 
 const getOpName = (key) => {
-  const map = { water: '浇水', fertilizer: '施肥', pruning: '修剪', pestControl: '防虫' }
+  const map = { water: '娴囨按', fertilizer: '鏂借偉', pruning: '淇壀', pestControl: '闃茶櫕' }
   return map[key] || key
 }
 

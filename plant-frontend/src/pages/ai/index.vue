@@ -311,8 +311,8 @@ const startDiagnosis = async () => {
         issue: '叶片发黄，可能是由于浇水过多或光照不足',
         suggestions: [
           '减少浇水频率，让土壤适当干燥',
-          将植物移至光线更充足的位置',
-          可以适当施肥补充养分'
+          '将植物移至光线更充足的位置',
+          '可以适当施肥补充养分'
         ]
       }
     } else if (diagnosisType.value === 'care') {

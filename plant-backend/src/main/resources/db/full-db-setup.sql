@@ -180,9 +180,11 @@ CREATE TABLE `reminder`
 -- 3. 插入初始数据
 
 -- 插入管理员用户（密码：admin123）
+-- 使用 BCrypt 加密后的密码，对应明文：admin123
+-- 生成方式：new BCryptPasswordEncoder().encode("admin123")
 INSERT INTO `sys_user` (`username`, `password`, `email`, `phone`, `role`) VALUES
-('admin', '$2a$10$E5p8tQf7s6d5r4e3w2q1.uh0JZ3t2K1X9Y8W7V6U5T4S3R2Q1P0', 'admin@example.com', '13800138000', 'ADMIN'),
-('user', '$2a$10$E5p8tQf7s6d5r4e3w2q1.uh0JZ3t2K1X9Y8W7V6U5T4S3R2Q1P0', 'user@example.com', '13900139000', 'USER');
+('admin', '$2a$10$7JB720yubVSofvwd2FCBBOeFNX6cOnj9pb4F5K6sNp4q5bF9K4nqy', 'admin@example.com', '13800138000', 'ADMIN'),
+('user', '$2a$10$7JB720yubVSofvwd2FCBBOeFNX6cOnj9pb4F5K6sNp4q5bF9K4nqy', 'user@example.com', '13900139000', 'USER');
 
 -- 插入官方植物数据
 INSERT INTO `official_plant` (`name`, `genus`, `species`, `description`) VALUES

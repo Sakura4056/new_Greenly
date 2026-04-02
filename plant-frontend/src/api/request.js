@@ -16,60 +16,79 @@ service.interceptors.request.use(
     config => {
         const userStore = useUserStore()
         const token = userStore.token
+        console.log('Request token:', token)
         if (token) {
-            config.headers['Authorization'] = `Bearer ${token}`
+            config.headers.Authorization = `Bearer ${token}`
         }
         return config
     },
-    error => {
-        return Promise.reject(error)
-    }
+    error => Promise.reject(error)
 )
 
 // Response Interceptor
 service.interceptors.response.use(
     response => {
         const res = response.data
-        // Assuming backend returns { code: 200, data: ..., message: ... }
-        // If standard Result structure:
+        const backendMessage = res.msg || res.message || 'Error'
+
         if (res.code !== 200) {
             ElMessage({
-                message: res.message || 'Error',
+                message: backendMessage,
                 type: 'error',
                 duration: 5 * 1000
             })
-            return Promise.reject(new Error(res.message || 'Error'))
-        } else {
-            return res.data
+
+            const error = new Error(backendMessage)
+            error.response = {
+                status: res.code,
+                data: res
+            }
+            return Promise.reject(error)
         }
+
+        const payload = res.data
+        if (payload !== null && typeof payload === 'object' && !Object.prototype.hasOwnProperty.call(payload, 'data')) {
+            Object.defineProperty(payload, 'data', {
+                value: payload,
+                enumerable: false,
+                configurable: true
+            })
+        }
+
+        return payload
     },
     error => {
         console.error('err' + error)
-        let message = error.message
+
+        const backendMessage = error.response?.data?.msg || error.response?.data?.message
+        let message = backendMessage || error.message
+
         if (error.response) {
             const status = error.response.status
             switch (status) {
-                case 401:
-                    message = '未登录或Token过期，请重新登录'
+                case 401: {
+                    message = backendMessage || '未登录或 Token 过期，请重新登录'
                     const userStore = useUserStore()
                     userStore.logout()
                     router.push(`/login?redirect=${router.currentRoute.value.fullPath}`)
                     break
+                }
                 case 403:
-                    message = '拒绝访问：您没有权限执行此操作'
+                    message = backendMessage || '拒绝访问：您没有权限执行此操作'
                     break
                 case 404:
-                    message = '请求的资源不存在'
+                    message = backendMessage || '请求的资源不存在'
                     break
                 case 500:
-                    message = '服务器内部错误'
+                    message = backendMessage || '服务器内部错误'
                     break
                 default:
-                    message = `连接错误 ${status}`
+                    message = backendMessage || `连接错误 ${status}`
             }
         }
+
         ElMessage({
-            message: message,
+            message,
             type: 'error',
             duration: 5 * 1000
         })

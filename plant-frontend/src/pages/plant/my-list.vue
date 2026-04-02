@@ -59,7 +59,7 @@
           <el-card class="plant-card" shadow="hover" :body-style="{ padding: '0px' }" @click="goDetail(plant.id)">
             <div class="card-image-wrapper">
               <el-image 
-                :src="plant.coverUrl || defaultCover" 
+                :src="getCoverUrl(plant)"
                 class="plant-image"
                 fit="cover"
               >
@@ -108,6 +108,7 @@ import { ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Search, Plus, Location, Calendar, Picture } from '@element-plus/icons-vue'
 import { getMyPlantList } from '@/api/my-plant'
+import { DEFAULT_PLANT_IMAGE, normalizeImageUrl } from '@/utils/image'
 
 const router = useRouter()
 const route = useRoute()
@@ -115,7 +116,7 @@ const route = useRoute()
 const loading = ref(false)
 const plantList = ref([])
 const total = ref(0)
-const defaultCover = 'https://images.unsplash.com/photo-1463320726281-696a485928c7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+const defaultCover = DEFAULT_PLANT_IMAGE
 
 const queryParams = ref({
   current: 1,
@@ -150,9 +151,10 @@ const loadData = async () => {
       queryParams.value.endDate = ''
     }
     const res = await getMyPlantList(queryParams.value)
-    if (res.data) {
-      plantList.value = res.data.records || []
-      total.value = res.data.total || 0
+    console.log('My plant list response:', res)
+    if (res && res.records) {
+      plantList.value = res.records || []
+      total.value = res.total || 0
     }
   } catch (err) {
     console.error(err)
@@ -182,6 +184,8 @@ const getStatusText = (status) => {
   }
   return map[status] || status
 }
+
+const getCoverUrl = (plant) => normalizeImageUrl(plant?.coverUrl, defaultCover)
 
 const goAdd = () => {
   router.push('/plant/my-add')
